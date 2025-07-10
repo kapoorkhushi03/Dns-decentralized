@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -29,22 +29,14 @@ export default function DNSHistory() {
   const [stats, setStats] = useState<any>({})
   const { toast } = useToast()
 
-  useEffect(() => {
-    loadHistory()
-  }, [])
-
-  useEffect(() => {
-    filterHistory()
-  }, [history, searchTerm, filterAction])
-
-  const loadHistory = () => {
+  const loadHistory = useCallback(() => {
     const historyData = DomainStorage.getDNSHistory()
     const statsData = DomainStorage.getDomainStats()
     setHistory(historyData)
     setStats(statsData)
-  }
+  }, [])
 
-  const filterHistory = () => {
+  const filterHistory = useCallback(() => {
     let filtered = history
 
     // Filter by search term
@@ -58,7 +50,15 @@ export default function DNSHistory() {
     }
 
     setFilteredHistory(filtered)
-  }
+  }, [history, searchTerm, filterAction])
+
+  useEffect(() => {
+    loadHistory()
+  }, [loadHistory])
+
+  useEffect(() => {
+    filterHistory()
+  }, [filterHistory])
 
   const getActionIcon = (action: string) => {
     switch (action) {
@@ -97,7 +97,6 @@ export default function DNSHistory() {
   const exportHistory = () => {
     const dataStr = JSON.stringify(filteredHistory, null, 2)
     const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr)
-
     const exportFileDefaultName = `dns-history-${new Date().toISOString().split("T")[0]}.json`
 
     const linkElement = document.createElement("a")

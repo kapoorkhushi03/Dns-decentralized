@@ -170,7 +170,8 @@ export default function HomePage() {
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">Perfect For Every Use Case</h2>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-              Whether you're building the next big DApp or securing your personal brand, DecentraDNS has you covered
+              Whether you&apos;re building the next big DApp or securing your personal brand, DecentraDNS has you
+              covered
             </p>
           </div>
 
@@ -244,3 +245,4 @@ export default function HomePage() {
     </div>
   )
 }
+

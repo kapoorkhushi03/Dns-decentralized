@@ -1,15 +1,16 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { SuiClient, getFullnodeUrl } from "@mysten/sui.js/client"
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
+import { useToast } from "@/hooks/use-toast"
 
 interface WalletContextType {
   isConnected: boolean
   address: string | null
-  balance: string
+  balance: number
+  connectWallet: () => Promise<void>
   connect: () => Promise<void>
+  disconnectWallet: () => void
   disconnect: () => void
-  signAndExecuteTransaction: (transaction: any) => Promise<any>
   isLoading: boolean
 }
 
@@ -18,125 +19,85 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined)
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [isConnected, setIsConnected] = useState(false)
   const [address, setAddress] = useState<string | null>(null)
-  const [balance, setBalance] = useState("0")
+  const [balance, setBalance] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
-  const [suiClient] = useState(() => new SuiClient({ url: getFullnodeUrl("testnet") }))
+  const { toast } = useToast()
 
-  // Check if wallet is already connected on mount
-  useEffect(() => {
-    checkWalletConnection()
-  }, [])
-
-  const checkWalletConnection = async () => {
+  const checkWalletConnection = useCallback(async () => {
     try {
-      // Check if Sui wallet is installed
-      if (typeof window !== "undefined" && (window as any).suiWallet) {
-        const wallet = (window as any).suiWallet
-        const accounts = await wallet.getAccounts()
-        if (accounts.length > 0) {
-          setAddress(accounts[0].address)
-          setIsConnected(true)
-          await updateBalance(accounts[0].address)
-        }
+      // Check if wallet is already connected (from localStorage or wallet extension)
+      const savedAddress = localStorage.getItem("wallet_address")
+      if (savedAddress) {
+        setAddress(savedAddress)
+        setIsConnected(true)
+        // Simulate balance fetch
+        setBalance(Math.random() * 1000)
       }
     } catch (error) {
       console.error("Error checking wallet connection:", error)
     }
-  }
+  }, [])
 
-  const updateBalance = async (walletAddress: string) => {
-    try {
-      const balanceResult = await suiClient.getBalance({
-        owner: walletAddress,
-        coinType: "0x2::sui::SUI",
-      })
-      const suiBalance = (Number.parseInt(balanceResult.totalBalance) / 1_000_000_000).toFixed(4)
-      setBalance(suiBalance)
-    } catch (error) {
-      console.error("Error fetching balance:", error)
-      setBalance("0")
-    }
-  }
+  useEffect(() => {
+    checkWalletConnection()
+  }, [checkWalletConnection])
 
-  const connect = async () => {
+  const connectWallet = async () => {
     setIsLoading(true)
     try {
-      // Check if Sui wallet is installed
-      if (typeof window === "undefined" || !(window as any).suiWallet) {
-        // Fallback: simulate wallet connection for demo
-        const demoAddress = "0x" + Math.random().toString(16).substr(2, 40)
-        setAddress(demoAddress)
-        setIsConnected(true)
-        setBalance("10.5000")
-        return
-      }
+      // Simulate wallet connection
+      await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      const wallet = (window as any).suiWallet
+      const mockAddress = "0x" + Math.random().toString(16).substr(2, 40)
+      setAddress(mockAddress)
+      setIsConnected(true)
+      setBalance(Math.random() * 1000)
 
-      // Request connection
-      await wallet.requestPermissions({
-        permissions: ["viewAccount", "suggestTransactions"],
+      localStorage.setItem("wallet_address", mockAddress)
+
+      toast({
+        title: "Wallet Connected",
+        description: "Successfully connected to your wallet",
       })
-
-      // Get accounts
-      const accounts = await wallet.getAccounts()
-      if (accounts.length > 0) {
-        setAddress(accounts[0].address)
-        setIsConnected(true)
-        await updateBalance(accounts[0].address)
-      }
     } catch (error) {
-      console.error("Error connecting wallet:", error)
-      throw new Error("Failed to connect wallet")
+      toast({
+        title: "Connection Failed",
+        description: "Failed to connect wallet. Please try again.",
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
     }
   }
 
-  const disconnect = () => {
+  const disconnectWallet = () => {
     setIsConnected(false)
     setAddress(null)
-    setBalance("0")
+    setBalance(0)
+    localStorage.removeItem("wallet_address")
+
+    toast({
+      title: "Wallet Disconnected",
+      description: "Your wallet has been disconnected",
+    })
   }
 
-  const signAndExecuteTransaction = async (transaction: any) => {
-    if (!isConnected || typeof window === "undefined" || !(window as any).suiWallet) {
-      throw new Error("Wallet not connected")
-    }
-
-    try {
-      const wallet = (window as any).suiWallet
-      const result = await wallet.signAndExecuteTransactionBlock({
-        transactionBlock: transaction,
-        options: {
-          showEffects: true,
-          showEvents: true,
-        },
-      })
-
-      // Update balance after transaction
-      if (address) {
-        await updateBalance(address)
-      }
-
-      return result
-    } catch (error) {
-      console.error("Error executing transaction:", error)
-      throw error
-    }
-  }
-
-  const value = {
-    isConnected,
-    address,
-    balance,
-    connect,
-    disconnect,
-    signAndExecuteTransaction,
-    isLoading,
-  }
-
-  return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>
+  return (
+    <WalletContext.Provider
+      value={{
+        isConnected,
+        address,
+        balance,
+        connectWallet,
+        connect: connectWallet,
+        disconnectWallet,
+        disconnect: disconnectWallet,
+        isLoading,
+      }}
+    >
+      {children}
+    </WalletContext.Provider>
+  )
 }
 
 export function useWallet() {

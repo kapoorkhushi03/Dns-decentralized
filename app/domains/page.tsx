@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   Globe,
   Settings,
@@ -42,29 +42,48 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
-import { DomainStorage } from "@/lib/domain-storage"
+import { DomainStorage, type PurchasedDomain } from "@/lib/domain-storage"
 import { IPFSClient } from "@/lib/ipfs-client"
 import CodeEditor from "@/components/code-editor"
 import DNSHistory from "@/components/dns-history"
 import DomainTransfer from "@/components/domain-transfer"
 
+// Define types for better type safety
+interface DomainRecord {
+  type: string
+  name: string
+  value: string
+  ttl: number
+}
+
+interface Domain {
+  id: string
+  name: string
+  status: string
+  expiresAt: string
+  nftId: string
+  ipfsHash: string
+  records: DomainRecord[]
+}
+
 export default function DomainsPage() {
-  const [domains, setDomains] = useState<any[]>([])
-  const [selectedDomain, setSelectedDomain] = useState<any | null>(null)
+  const [domains, setDomains] = useState<Domain[]>([])
+  const [selectedDomain, setSelectedDomain] = useState<Domain | null>(null)
   const [activeTab, setActiveTab] = useState("domains")
   const [isDeleting, setIsDeleting] = useState(false)
   const { toast } = useToast()
 
-  useEffect(() => {
-    loadDomains()
-  }, [])
+  // Use the imported PurchasedDomain type
+  const [selectedDomainForEdit, setSelectedDomainForEdit] = useState<PurchasedDomain | null>(null)
+  const [showCodeEditor, setShowCodeEditor] = useState(false)
+  const [newRecord, setNewRecord] = useState<DomainRecord>({ type: "A", name: "", value: "", ttl: 300 })
 
-  const loadDomains = () => {
+  const loadDomains = useCallback(() => {
     // Load purchased domains from storage (excluding deleted ones for main view)
     const purchasedDomains = DomainStorage.getPurchasedDomains().filter((d) => d.status !== "deleted")
 
     // Convert to the format expected by the component
-    const formattedDomains = purchasedDomains.map((domain) => ({
+    const formattedDomains: Domain[] = purchasedDomains.map((domain) => ({
       id: domain.id,
       name: domain.name,
       status: domain.status,
@@ -91,13 +110,11 @@ export default function DomainsPage() {
     } else if (formattedDomains.length > 0) {
       setSelectedDomain(formattedDomains[0])
     }
-  }
+  }, [selectedDomain])
 
-  const [newRecord, setNewRecord] = useState({ type: "A", name: "", value: "", ttl: 300 })
-
-  // Add this state for the code editor
-  const [showCodeEditor, setShowCodeEditor] = useState(false)
-  const [selectedDomainForEdit, setSelectedDomainForEdit] = useState(null)
+  useEffect(() => {
+    loadDomains()
+  }, [loadDomains])
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -118,7 +135,6 @@ export default function DomainsPage() {
 
   const handleDeleteDomain = async (domainName: string) => {
     if (isDeleting) return
-
     setIsDeleting(true)
 
     try {
@@ -147,13 +163,11 @@ export default function DomainsPage() {
 
       // Delete from local storage
       const success = DomainStorage.deleteDomain(domainName)
-
       if (success) {
         toast({
           title: "Domain Deleted",
           description: `${domainName} has been successfully deleted`,
         })
-
         // Reload domains list
         loadDomains()
       } else {
@@ -313,7 +327,6 @@ export default function DomainsPage() {
                         </p>
                       </div>
                     ))}
-
                     {domains.length === 0 && (
                       <div className="text-center py-8 text-gray-400">
                         <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -579,7 +592,6 @@ export default function DomainsPage() {
                                   </a>
                                 </div>
                               </div>
-
                               <div className="p-4 bg-gray-700 rounded-lg">
                                 <h4 className="text-white font-semibold mb-2">Stored Metadata</h4>
                                 <pre className="text-sm text-gray-300 bg-gray-800 p-3 rounded overflow-x-auto">
@@ -599,7 +611,6 @@ export default function DomainsPage() {
                                   )}
                                 </pre>
                               </div>
-
                               <Button className="w-full bg-blue-600 hover:bg-blue-700">Update IPFS Metadata</Button>
                             </div>
                           </div>
@@ -635,7 +646,7 @@ export default function DomainsPage() {
               <Card className="bg-gray-800 border-gray-700 flex items-center justify-center h-80">
                 <div className="text-center">
                   <Send className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-400">Select a domain from the "My Domains" tab to transfer</p>
+                  <p className="text-gray-400">Select a domain from the &quot;My Domains&quot; tab to transfer</p>
                 </div>
               </Card>
             )}
@@ -645,3 +656,5 @@ export default function DomainsPage() {
     </div>
   )
 }
+
+

@@ -147,7 +147,7 @@ export default function RegistrationSuccessPage() {
         {/* Next Steps */}
         <Card className="bg-gray-800 border-gray-700 mb-8">
           <CardHeader>
-            <CardTitle className="text-white">What's Next?</CardTitle>
+            <CardTitle className="text-white">What&apos;s Next?</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-2 gap-6">

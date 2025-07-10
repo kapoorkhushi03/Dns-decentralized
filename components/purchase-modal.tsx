@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, Fragment } from "react"
+import { useState, useEffect, Fragment } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -36,22 +36,18 @@ export default function PurchaseModal({ domain, isOpen, isProcessing, onClose, o
     lastName: "",
     email: "",
     phone: "",
-
     // Organization (Optional)
     organization: "",
     jobTitle: "",
-
     // Address
     address: "",
     city: "",
     state: "",
     country: "",
     zipCode: "",
-
     // Domain Usage
     intendedUse: "",
     description: "",
-
     // Preferences
     newsletter: false,
     terms: false,
@@ -67,10 +63,10 @@ export default function PurchaseModal({ domain, isOpen, isProcessing, onClose, o
   })
 
   // Calculate total cost
-  useState(() => {
+  useEffect(() => {
     const total = costs.domainPrice + costs.registrationFee + costs.gasFee + costs.platformFee
     setCosts((prev) => ({ ...prev, total }))
-  }, [costs.domainPrice])
+  }, [costs.domainPrice, costs.registrationFee, costs.gasFee, costs.platformFee])
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setProfileData((prev) => ({ ...prev, [field]: value }))
@@ -127,7 +123,6 @@ export default function PurchaseModal({ domain, isOpen, isProcessing, onClose, o
               <CardHeader className="px-6 pt-6 pb-4">
                 <CardTitle className="text-white">{domain?.name ?? "Purchase Domain"}</CardTitle>
               </CardHeader>
-
               <CardContent className="space-y-6 px-6 pb-8">
                 {domain ? (
                   <>
@@ -137,7 +132,6 @@ export default function PurchaseModal({ domain, isOpen, isProcessing, onClose, o
                         {domain.seller.slice(0, 6)}…{domain.seller.slice(-4)}
                       </span>
                     </div>
-
                     <div className="text-3xl font-bold text-blue-400">{domain.price}</div>
                   </>
                 ) : (
@@ -546,7 +540,6 @@ export default function PurchaseModal({ domain, isOpen, isProcessing, onClose, o
                       Cancel
                     </Button>
                   </div>
-
                   <div>
                     {step < 3 ? (
                       <Button
@@ -582,3 +575,4 @@ export default function PurchaseModal({ domain, isOpen, isProcessing, onClose, o
     </Transition.Root>
   )
 }
+
